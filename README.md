@@ -61,26 +61,12 @@ The **Employee Management System (EMS)** is an MVP desktop application built usi
 
 ---
 
-## 💻 How to Compile and Run
+## 💻 How to Run in Eclipse IDE
 
-### On Windows (One-Click Batch Files)
-- **Compile**: Double-click [compile.bat](file:///d:/stash/compile.bat)
-- **Run**: Double-click [run.bat](file:///d:/stash/run.bat)
-
-### In Eclipse IDE
 1. Open **Eclipse**.
 2. Go to **File** $\rightarrow$ **Open Projects from File System...** (or **File** $\rightarrow$ **Import...** $\rightarrow$ **General** $\rightarrow$ **Existing Projects into Workspace**).
 3. Set **Import source** (or root directory) to `d:\stash` and click **Finish**.
-4. In Project Explorer, expand `src/com/ems/main`, right-click [`Main.java`](file:///d:/stash/src/com/ems/main/Main.java) $\rightarrow$ **Run As** $\rightarrow$ **Java Application**.
-
-### Via Command Prompt / PowerShell
-```bash
-# 1. Compile all source files into bin directory
-javac -encoding UTF-8 -d bin -cp "lib/mysql-connector-j-8.3.0.jar;src" src/com/ems/model/*.java src/com/ems/exception/*.java src/com/ems/util/*.java src/com/ems/dao/*.java src/com/ems/ui/*.java src/com/ems/ui/admin/*.java src/com/ems/ui/employee/*.java src/com/ems/main/*.java
-
-# 2. Run the application
-java -cp "bin;lib/mysql-connector-j-8.3.0.jar" com.ems.main.Main
-```
+4. In Project Explorer, expand `src` $\rightarrow$ `com.ems.main`, right-click [`Main.java`](file:///d:/stash/src/com/ems/main/Main.java) $\rightarrow$ **Run As** $\rightarrow$ **Java Application**.
 
 ---
 
@@ -90,8 +76,9 @@ java -cp "bin;lib/mysql-connector-j-8.3.0.jar" com.ems.main.Main
 d:\stash\
 │
 ├── database.sql                  # MySQL schema and demo data
-├── compile.bat                   # Automated compilation batch script
-├── run.bat                       # Application launcher script
+├── db.properties                 # Database connection settings
+├── .project                      # Eclipse project configuration
+├── .classpath                    # Eclipse classpath and build path
 ├── README.md                     # Project overview and instructions
 ├── SYLLABUS_MAPPING.md           # Syllabus topic mapping guide
 │

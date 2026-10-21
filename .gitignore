@@ -1,0 +1,10 @@
+# Database configuration containing sensitive credentials
+db.properties
+
+# Compiled Java class files
+bin/
+*.class
+
+# Eclipse workspace metadata
+.metadata/
+.settings/
