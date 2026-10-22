@@ -123,9 +123,6 @@ public class LoginFrame extends JFrame {
 
             try {
                 User user = userDAO.authenticate(username, password, targetRole);
-                JOptionPane.showMessageDialog(LoginFrame.this,
-                    user.getDashboardWelcome(),
-                    "Login Successful", JOptionPane.INFORMATION_MESSAGE);
 
                 if (user instanceof Admin) {
                     new AdminDashboardFrame((Admin) user).setVisible(true);
