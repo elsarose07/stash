@@ -114,8 +114,9 @@ public class EmployeeDAO implements GenericDAO<Employee> {
         Connection conn = null;
         PreparedStatement stmt = null;
         ResultSet rs = null;
-        String sql = "SELECT e.*, d.dept_name FROM employees e " +
+        String sql = "SELECT e.*, d.dept_name, u.user_id, u.username, u.password FROM employees e " +
                      "LEFT JOIN departments d ON e.dept_id = d.dept_id " +
+                     "LEFT JOIN users u ON e.emp_id = u.emp_id " +
                      "WHERE e.emp_id = ?";
 
         try {
@@ -290,6 +291,18 @@ public class EmployeeDAO implements GenericDAO<Employee> {
             rs.getDate("join_date")
         );
         emp.setDeptName(rs.getString("dept_name"));
+
+        try {
+            int uid = rs.getInt("user_id");
+            if (!rs.wasNull()) {
+                emp.setUserId(uid);
+            }
+            emp.setUsername(rs.getString("username"));
+            emp.setPassword(rs.getString("password"));
+        } catch (SQLException ignored) {
+            // Columns not part of this specific query projection
+        }
+
         return emp;
     }
 }

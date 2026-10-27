@@ -1,6 +1,3 @@
-# Database configuration containing sensitive credentials
-db.properties
-
 # Compiled Java class files
 bin/
 *.class

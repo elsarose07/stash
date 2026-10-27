@@ -83,6 +83,7 @@ public class EmployeeHomePanel extends JPanel {
     }
 
     public void refreshData() {
+        welcomeLabel.setText("Welcome, " + employee.getFullName() + "!");
         try {
             // Attendance summary
             List<Attendance> attList = attendanceDAO.getByEmployee(employee.getEmpId());

@@ -2,6 +2,7 @@ package com.ems.ui.admin;
 
 import com.ems.dao.DepartmentDAO;
 import com.ems.dao.EmployeeDAO;
+import com.ems.dao.UserDAO;
 import com.ems.exception.AppException;
 import com.ems.model.Department;
 import com.ems.model.Employee;
@@ -24,6 +25,8 @@ public class EmployeeMgmtPanel extends JPanel {
     private JTextField idField;
     private JTextField firstNameField;
     private JTextField lastNameField;
+    private JTextField usernameField;
+    private JTextField passwordField;
     private JTextField emailField;
     private JTextField phoneField;
     private JComboBox<Department> deptComboBox;
@@ -45,10 +48,12 @@ public class EmployeeMgmtPanel extends JPanel {
 
     private EmployeeDAO employeeDAO;
     private DepartmentDAO departmentDAO;
+    private UserDAO userDAO;
 
     public EmployeeMgmtPanel() {
         this.employeeDAO = new EmployeeDAO();
         this.departmentDAO = new DepartmentDAO();
+        this.userDAO = new UserDAO();
 
         initializeUI();
         loadDepartments();
@@ -73,14 +78,16 @@ public class EmployeeMgmtPanel extends JPanel {
 
         // Form Panel on WEST
         JPanel formPanel = new JPanel(new BorderLayout(5, 5));
-        formPanel.setPreferredSize(new Dimension(320, 0));
+        formPanel.setPreferredSize(new Dimension(340, 0));
         formPanel.setBorder(BorderFactory.createTitledBorder("Employee Details"));
 
-        JPanel fieldsPanel = new JPanel(new GridLayout(9, 2, 5, 8));
+        JPanel fieldsPanel = new JPanel(new GridLayout(11, 2, 5, 8));
         idField = new JTextField();
         idField.setEditable(false);
         firstNameField = new JTextField();
         lastNameField = new JTextField();
+        usernameField = new JTextField();
+        passwordField = new JTextField("emp123");
         emailField = new JTextField();
         phoneField = new JTextField();
         deptComboBox = new JComboBox<>();
@@ -88,12 +95,26 @@ public class EmployeeMgmtPanel extends JPanel {
         salaryField = new JTextField();
         joinDateField = new JTextField("2026-01-01");
 
+        // Suggest username when typing first name
+        firstNameField.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                if (usernameField.isEnabled() && usernameField.getText().trim().isEmpty() && !firstNameField.getText().trim().isEmpty()) {
+                    usernameField.setText(firstNameField.getText().trim().toLowerCase());
+                }
+            }
+        });
+
         fieldsPanel.add(new JLabel("ID:"));
         fieldsPanel.add(idField);
         fieldsPanel.add(new JLabel("First Name: *"));
         fieldsPanel.add(firstNameField);
         fieldsPanel.add(new JLabel("Last Name: *"));
         fieldsPanel.add(lastNameField);
+        fieldsPanel.add(new JLabel("Username: *"));
+        fieldsPanel.add(usernameField);
+        fieldsPanel.add(new JLabel("Default Password: *"));
+        fieldsPanel.add(passwordField);
         fieldsPanel.add(new JLabel("Email: *"));
         fieldsPanel.add(emailField);
         fieldsPanel.add(new JLabel("Phone:"));
@@ -208,6 +229,10 @@ public class EmployeeMgmtPanel extends JPanel {
         idField.setText(tableModel.getValueAt(row, 0).toString());
         firstNameField.setText(tableModel.getValueAt(row, 1).toString());
         lastNameField.setText(tableModel.getValueAt(row, 2).toString());
+        usernameField.setText("-");
+        passwordField.setText("********");
+        usernameField.setEnabled(false);
+        passwordField.setEnabled(false);
         emailField.setText(tableModel.getValueAt(row, 3).toString());
         Object phoneVal = tableModel.getValueAt(row, 4);
         phoneField.setText(phoneVal != null ? phoneVal.toString() : "");
@@ -228,6 +253,14 @@ public class EmployeeMgmtPanel extends JPanel {
     private void addEmployee() {
         if (!validateInputs()) return;
 
+        String username = usernameField.getText().trim();
+        String password = passwordField.getText().trim();
+        if (username.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Username and Default Password are required for employee login.",
+                "Notice", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         try {
             Department selectedDept = (Department) deptComboBox.getSelectedItem();
             int deptId = selectedDept != null ? selectedDept.getDeptId() : 0;
@@ -247,8 +280,19 @@ public class EmployeeMgmtPanel extends JPanel {
             );
 
             if (employeeDAO.add(emp)) {
-                JOptionPane.showMessageDialog(this, "Employee added successfully (ID: " + emp.getEmpId() + ")",
-                    "Success", JOptionPane.INFORMATION_MESSAGE);
+                // Create user login account with specified username & default password
+                try {
+                    userDAO.createEmployeeAccount(emp.getEmpId(), username, password);
+                    JOptionPane.showMessageDialog(this,
+                        "Employee added successfully!\nEmployee ID: " + emp.getEmpId() +
+                        "\nLogin Username: " + username +
+                        "\nDefault Password: " + password,
+                        "Success", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this,
+                        "Employee profile created (ID: " + emp.getEmpId() + "), but login account creation failed: " + ex.getMessage(),
+                        "Warning", JOptionPane.WARNING_MESSAGE);
+                }
                 clearForm();
                 loadEmployeeTable(null);
             }
@@ -332,6 +376,10 @@ public class EmployeeMgmtPanel extends JPanel {
         idField.setText("");
         firstNameField.setText("");
         lastNameField.setText("");
+        usernameField.setText("");
+        passwordField.setText("emp123");
+        usernameField.setEnabled(true);
+        passwordField.setEnabled(true);
         emailField.setText("");
         phoneField.setText("");
         designationField.setText("");

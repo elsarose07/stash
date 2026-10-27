@@ -2,6 +2,7 @@ package com.ems.dao;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -11,6 +12,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+import java.awt.BorderLayout;
+import java.awt.GraphicsEnvironment;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.SwingUtilities;
 
 /**
  * Database Connection Manager using JDBC.
@@ -25,11 +33,16 @@ public class DBConnection {
     private static final String CONFIG_FILE = "db.properties";
     private static final String DRIVER = "com.mysql.cj.jdbc.Driver";
 
+    // Common passwords in student/dev environments for automatic fallback
+    private static final String[] CANDIDATE_PASSWORDS = {
+        "", "Nexus@123", "root", "1234", "admin", "password", "123456", "mysql"
+    };
+
     private static String host = "localhost";
     private static String port = "3306";
     private static String dbName = "ems_db";
     private static String user = "root";
-    private static String password = "Nexus@123";
+    private static String password = "";
 
     static {
         try {
@@ -67,15 +80,119 @@ public class DBConnection {
         return base + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
     }
 
+    /**
+     * Establishes a raw connection to MySQL. If access is denied (error 1045),
+     * it automatically tests candidate passwords to find the working one.
+     * If all candidates fail, it prompts the user with a GUI dialog to enter their password.
+     */
+    private static Connection openRawConnection(String targetDb) throws SQLException {
+        try {
+            return DriverManager.getConnection(getUrl(targetDb), user, password);
+        } catch (SQLException e) {
+            if (e.getErrorCode() == 1045 || "28000".equals(e.getSQLState())) {
+                for (String candidate : CANDIDATE_PASSWORDS) {
+                    if (candidate.equals(password)) {
+                        continue;
+                    }
+                    try {
+                        Connection conn = DriverManager.getConnection(getUrl(targetDb), user, candidate);
+                        password = candidate; // Cache successful password for all subsequent calls
+                        saveConfiguration(); // Persist so next launch connects instantly
+                        return conn;
+                    } catch (SQLException ignored) {
+                        // Continue trying next candidate
+                    }
+                }
+
+                // If all candidate passwords fail, prompt the user via dialog
+                String prompted = promptForPassword();
+                if (prompted != null) {
+                    try {
+                        Connection conn = DriverManager.getConnection(getUrl(targetDb), user, prompted);
+                        password = prompted;
+                        saveConfiguration(); // Persist to db.properties
+                        return conn;
+                    } catch (SQLException ex) {
+                        throw new SQLException("Access denied with the entered password. Please verify your MySQL credentials.", ex.getSQLState(), ex.getErrorCode());
+                    }
+                }
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Displays a graphical password dialog if standard credentials fail.
+     */
+    private static String promptForPassword() {
+        if (GraphicsEnvironment.isHeadless()) {
+            return null;
+        }
+
+        final JPasswordField passwordField = new JPasswordField(20);
+        JPanel panel = new JPanel(new BorderLayout(0, 8));
+        JLabel label = new JLabel("<html><b>MySQL Database Authentication</b><br><br>" +
+            "Could not connect to MySQL using standard passwords.<br>" +
+            "Please enter your local MySQL <b>" + user + "</b> password:</html>");
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(passwordField, BorderLayout.CENTER);
+
+        final int[] result = new int[1];
+        if (SwingUtilities.isEventDispatchThread()) {
+            result[0] = JOptionPane.showConfirmDialog(
+                null, panel, "MySQL Authentication Required",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+        } else {
+            try {
+                SwingUtilities.invokeAndWait(() -> {
+                    result[0] = JOptionPane.showConfirmDialog(
+                        null, panel, "MySQL Authentication Required",
+                        JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+                });
+            } catch (Exception ex) {
+                return null;
+            }
+        }
+
+        if (result[0] == JOptionPane.OK_OPTION) {
+            return new String(passwordField.getPassword());
+        }
+        return null;
+    }
+
+    /**
+     * Saves the current database configuration to db.properties.
+     */
+    public static void saveConfiguration() {
+        File file = new File(CONFIG_FILE);
+        Properties props = new Properties();
+        if (file.exists()) {
+            try (FileInputStream in = new FileInputStream(file)) {
+                props.load(in);
+            } catch (IOException ignored) {}
+        }
+        props.setProperty("db.host", host);
+        props.setProperty("db.port", port);
+        props.setProperty("db.name", dbName);
+        props.setProperty("db.user", user);
+        props.setProperty("db.password", password);
+
+        try (FileOutputStream out = new FileOutputStream(file)) {
+            props.store(out, "Database Configuration for Employee Management System");
+        } catch (IOException e) {
+            System.err.println("Notice: Could not save " + CONFIG_FILE + ": " + e.getMessage());
+        }
+    }
+
     public static Connection getConnection() throws SQLException {
         try {
-            Connection conn = DriverManager.getConnection(getUrl(dbName), user, password);
+            Connection conn = openRawConnection(dbName);
             ensureTablesExist(conn);
             return conn;
         } catch (SQLException e) {
             if (e.getErrorCode() == 1049) { // Database doesn't exist
                 tryAutoInitDatabase();
-                Connection conn = DriverManager.getConnection(getUrl(dbName), user, password);
+                Connection conn = openRawConnection(dbName);
                 ensureTablesExist(conn);
                 return conn;
             }
@@ -93,12 +210,12 @@ public class DBConnection {
     }
 
     private static void tryAutoInitDatabase() {
-        try (Connection conn = DriverManager.getConnection(getUrl(""), user, password);
+        try (Connection conn = openRawConnection("");
              Statement stmt = conn.createStatement()) {
             stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS " + dbName);
         } catch (Exception ignored) {}
 
-        try (Connection conn = DriverManager.getConnection(getUrl(dbName), user, password)) {
+        try (Connection conn = openRawConnection(dbName)) {
             runSchemaScript(conn);
         } catch (Exception ignored) {}
     }
