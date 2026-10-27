@@ -21,6 +21,7 @@ public class EmployeeDashboardFrame extends JFrame {
     private MyAttendancePanel attendancePanel;
     private MyLeavePanel leavePanel;
     private MySalaryPanel salaryPanel;
+    private EmployeeSettingsPanel settingsPanel;
 
     public EmployeeDashboardFrame(Employee employee) {
         this.employee = employee;
@@ -35,7 +36,7 @@ public class EmployeeDashboardFrame extends JFrame {
         setLayout(new BorderLayout());
 
         // Sidebar Navigation
-        JPanel sidebar = new JPanel(new GridLayout(6, 1, 0, 8));
+        JPanel sidebar = new JPanel(new GridLayout(7, 1, 0, 8));
         sidebar.setPreferredSize(new Dimension(180, 600));
         sidebar.setBorder(new EmptyBorder(10, 10, 10, 10));
 
@@ -44,6 +45,7 @@ public class EmployeeDashboardFrame extends JFrame {
         JButton btnAttendance = new JButton("My Attendance");
         JButton btnLeave = new JButton("My Leave");
         JButton btnSalary = new JButton("My Salary");
+        JButton btnSettings = new JButton("Settings");
         JButton btnLogout = new JButton("Logout");
 
         sidebar.add(btnDashboard);
@@ -51,6 +53,7 @@ public class EmployeeDashboardFrame extends JFrame {
         sidebar.add(btnAttendance);
         sidebar.add(btnLeave);
         sidebar.add(btnSalary);
+        sidebar.add(btnSettings);
         sidebar.add(btnLogout);
 
         add(sidebar, BorderLayout.WEST);
@@ -65,12 +68,14 @@ public class EmployeeDashboardFrame extends JFrame {
         attendancePanel = new MyAttendancePanel(employee);
         leavePanel = new MyLeavePanel(employee);
         salaryPanel = new MySalaryPanel(employee);
+        settingsPanel = new EmployeeSettingsPanel(employee);
 
         contentPanel.add(homePanel, "dashboard");
         contentPanel.add(profilePanel, "profile");
         contentPanel.add(attendancePanel, "attendance");
         contentPanel.add(leavePanel, "leave");
         contentPanel.add(salaryPanel, "salary");
+        contentPanel.add(settingsPanel, "settings");
 
         add(contentPanel, BorderLayout.CENTER);
 
@@ -98,6 +103,10 @@ public class EmployeeDashboardFrame extends JFrame {
         btnSalary.addActionListener(e -> {
             salaryPanel.loadSalaryData();
             cardLayout.show(contentPanel, "salary");
+        });
+
+        btnSettings.addActionListener(e -> {
+            cardLayout.show(contentPanel, "settings");
         });
 
         btnLogout.addActionListener(e -> logout());

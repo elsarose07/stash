@@ -72,7 +72,7 @@ public class AdminDashboardFrame extends JFrame {
         attPanel = new AttendanceMgmtPanel();
         leavePanel = new LeaveMgmtPanel();
         salaryPanel = new SalaryMgmtPanel();
-        settingsPanel = new SettingsPanel();
+        settingsPanel = new SettingsPanel(admin);
 
         contentPanel.add(homePanel, "dashboard");
         contentPanel.add(empPanel, "employees");
@@ -121,7 +121,6 @@ public class AdminDashboardFrame extends JFrame {
 
         btnSettings.addActionListener(e -> {
             settingsPanel.loadUsersTable();
-            settingsPanel.loadEmployees();
             cardLayout.show(contentPanel, "settings");
         });
 

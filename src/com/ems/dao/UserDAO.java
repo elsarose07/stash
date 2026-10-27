@@ -117,6 +117,38 @@ public class UserDAO {
     }
 
     /**
+     * Resets password for an employee verifying username and registered email.
+     */
+    public boolean resetForgottenPassword(String username, String email, String newPassword) throws AppException {
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        String verifySql = "SELECT u.user_id FROM users u " +
+                           "JOIN employees e ON u.emp_id = e.emp_id " +
+                           "WHERE u.username = ? AND LOWER(e.email) = LOWER(?) AND u.role = 'EMPLOYEE'";
+
+        try {
+            conn = DBConnection.getConnection();
+            stmt = conn.prepareStatement(verifySql);
+            stmt.setString(1, username.trim());
+            stmt.setString(2, email.trim());
+            rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                int userId = rs.getInt("user_id");
+                DBConnection.close(null, stmt, rs);
+                return changePassword(userId, newPassword);
+            } else {
+                throw new AppException("No employee account found matching this username and registered email.");
+            }
+        } catch (SQLException e) {
+            throw new AppException("Failed to reset password: " + e.getMessage(), e);
+        } finally {
+            DBConnection.close(conn, stmt, rs);
+        }
+    }
+
+    /**
      * Retrieves all user accounts (used in Admin Settings).
      */
     public List<User> getAllUsers() throws AppException {
